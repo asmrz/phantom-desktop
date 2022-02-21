@@ -1,0 +1,37 @@
+name: DockerHub
+
+on:
+  schedule:
+    - cron: '42 18 1 */2 *'
+  push:
+    branches: [ master ]
+
+env:
+  IMAGE_NAME: ${{ github.event.repository.name }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - name: Log into Docker Hub
+        env:
+          DOCKER_USER: ${{secrets.DOCKER_USER}}
+          DOCKER_PASSWORD: ${{secrets.DOCKER_PASSWORD}}
+        run: |
+          docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
+      - name: Build the Docker image
+        env:
+          DOCKER_USER: ${{secrets.DOCKER_USER}}
+          IMAGE: ${{ env.IMAGE_NAME }}
+        run: docker build . --file Dockerfile --build-arg USERNAME=phantom --tag $DOCKER_USER/${IMAGE:-phantom-desktop}:$(date +%Y%m%dT%H%M%S) --tag $DOCKER_USER/${IMAGE:-phantom-desktop}:latest
+      - name: Docker Push
+        env:
+          DOCKER_USER: ${{secrets.DOCKER_USER}}
+          IMAGE: ${{ env.IMAGE_NAME }}
+        run: docker push $DOCKER_USER/${IMAGE:-phantom-desktop}
+
